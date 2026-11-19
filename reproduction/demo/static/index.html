@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StructTab · Table Recognition</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">ST</div>
+      <div><h1>StructTab</h1><p>Table Recognition · Method-level Demo</p></div>
+    </div>
+    <div id="systemStatus" class="system-status"><span></span>本地服务就绪</div>
+  </header>
+
+  <main>
+    <section class="stage-section panel">
+      <div class="section-heading">
+        <div><span class="eyebrow">MODEL ROUTE</span><h2>选择模型阶段</h2></div>
+      </div>
+      <div id="stageRail" class="stage-rail"></div>
+    </section>
+
+    <div class="workspace">
+      <aside class="control-panel panel">
+        <div class="source-tabs" role="tablist">
+          <button class="source-tab active" data-source="example">TableVerse 示例</button>
+          <button class="source-tab" data-source="upload">上传图片</button>
+        </div>
+
+        <div id="exampleControls">
+          <div class="filter-grid">
+            <label>结构类型<select id="structureFilter">
+              <option value="">全部结构</option><option value="regular_no_merge">普通无合并</option>
+              <option value="rowspan">Rowspan</option><option value="colspan">Colspan</option>
+              <option value="combined_merge">Rowspan + Colspan</option>
+              <option value="multiple_merges">多个合并区域</option><option value="large_dense">大型 / 密集</option>
+            </select></label>
+            <label>内容类型<select id="contentFilter">
+              <option value="">全部内容</option><option value="chinese">中文</option>
+              <option value="english">英文</option><option value="mixed_zh_en">中英混合</option>
+              <option value="formula">公式</option>
+            </select></label>
+          </div>
+          <div class="sample-actions">
+            <button id="previousButton" class="icon-button" title="上一个">←</button>
+            <button id="randomButton" class="primary compact">✦ 随机换一张</button>
+            <button id="nextButton" class="icon-button" title="下一个">→</button>
+          </div>
+          <p id="candidateCount" class="candidate-count"></p>
+        </div>
+
+        <div id="uploadControls" class="hidden">
+          <label id="dropZone" class="drop-zone">
+            <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp">
+            <span class="drop-icon">↥</span><strong>选择或拖入表格图片</strong>
+            <small>JPEG / PNG / WebP，最大 15 MiB</small>
+          </label>
+        </div>
+
+        <div id="imageShell" class="image-shell" title="点击放大查看原图">
+          <img id="sourceImage" alt="当前表格图片">
+          <div id="imagePlaceholder" class="image-placeholder">正在加载样例…</div>
+        </div>
+        <div class="sample-meta">
+          <div><span>当前样例</span><strong id="sampleLabel">—</strong></div>
+          <div id="tagList" class="tag-list"></div>
+        </div>
+        <button id="inferButton" class="primary infer-button">识别</button>
+        <p id="actionHint" class="action-hint">预测与 Reward 均在点击后现场生成。</p>
+      </aside>
+
+      <section id="resultPanel" class="result-panel panel">
+        <div class="result-head">
+          <div><span class="eyebrow">RECOGNITION OUTPUT</span><h2>识别结果</h2></div>
+          <div id="originBadge" class="origin-badge">等待实时识别</div>
+        </div>
+        <div id="loadingOverlay" class="loading-overlay hidden">
+          <div class="loader"></div><strong id="loadingTitle">正在推理…</strong>
+          <p>首次运行需要加载模型；TableVerse 代理 Reward 还会顺序执行两条 Anchor OCR 分支，请保持页面开启。</p>
+        </div>
+        <div id="emptyState" class="empty-state">
+          <span>⌁</span><h3>等待实时识别</h3>
+          <p>选择一张 TableVerse 示例或上传图片，然后点击“识别”。</p>
+        </div>
+        <div id="resultContent" class="hidden">
+          <div class="status-grid">
+            <div class="status-card"><span>完整 Table</span><strong id="completeStatus">—</strong></div>
+            <div class="status-card"><span>严格结构</span><strong id="structureStatus">—</strong></div>
+            <div class="status-card"><span>疑似截断</span><strong id="truncateStatus">—</strong></div>
+          </div>
+
+          <div class="render-grid">
+            <article class="render-card prediction-card"><div class="card-title"><h3>预测表格</h3><span>Prediction</span></div><div id="predictionRender" class="table-render"></div></article>
+            <article id="referenceCard" class="render-card"><div class="card-title"><h3>参考表格</h3><span>Ground Truth</span></div><div id="referenceRender" class="table-render"></div></article>
+          </div>
+
+          <section id="rewardSection" class="reward-section">
+            <div class="card-title"><div><h3>Uni-TabRL Reward · 方法级代理计算</h3><p>0.4 × Validity + 0.3 × Structure + 0.3 × Content</p></div><strong id="totalReward" class="reward-total">—</strong></div>
+            <div class="reward-pipeline">
+              <article class="reward-component validity-component">
+                <header><span>01 · VALIDITY</span><strong id="validityValue">—</strong></header>
+                <p>行列计数与合并声明必须同时匹配，结果为 0 或 1。</p>
+                <div id="validityChecks" class="validity-checks"></div>
+              </article>
+              <article class="reward-component structure-component">
+                <header><span>02 · STRUCTURE / 1D PROBE</span><strong id="structureValue">—</strong></header>
+                <p>忽略文本，按物理行从左到右比较 cell 的行号、标签和 span 属性。</p>
+                <div class="sequence-legend"><i class="matched"></i>正确前缀 <i class="mismatch"></i>首次错误 <i class="unscored"></i>后续不计分 <i class="extra"></i>预测额外项</div>
+                <div class="sequence-row"><b>REF</b><div id="referenceSequence" class="cell-sequence"></div></div>
+                <div class="sequence-row"><b>PRED</b><div id="predictionSequence" class="cell-sequence"></div></div>
+                <div id="probeCalculation" class="component-calculation"></div>
+                <p id="probeBoundaryNote" class="boundary-note hidden"></p>
+              </article>
+              <article class="reward-component content-component">
+                <header><span>03 · CONTENT / ANCHOR DESTYLIZATION</span><strong id="contentValue">—</strong></header>
+                <p>本 Demo 强制采用 should_de_stylize=True：两侧 HTML 均经标准化渲染与冻结 Anchor OCR 重解析。</p>
+                <div class="content-flow"><span>HTML</span><i>→</i><span>标准化 PNG</span><i>→</i><span>Anchor OCR</span><i>→</i><span>Destylized HTML</span><i>→</i><strong>TEDS</strong></div>
+                <div id="anchorResult" class="anchor-result">
+                  <div class="anchor-branches">
+                    <article><h4>Prediction branch</h4><span>传给 Anchor OCR 的 PNG</span><img id="anchorPredictionImage" alt="预测 HTML 的标准化渲染图"><b>Anchor OCR ↓ Destylized HTML</b><div id="anchorPredictionRender" class="anchor-table-render"></div><details><summary>Destylized HTML</summary><pre id="anchorPredictionHtml"></pre></details></article>
+                    <article><h4>Reference branch</h4><span>传给 Anchor OCR 的 PNG</span><img id="anchorReferenceImage" alt="参考 HTML 的标准化渲染图"><b>Anchor OCR ↓ Destylized HTML</b><div id="anchorReferenceRender" class="anchor-table-render"></div><details><summary>Destylized HTML</summary><pre id="anchorReferenceHtml"></pre></details></article>
+                  </div>
+                  <div class="anchor-score"><span>Destylized Prediction + Destylized Reference → Content TEDS</span><strong id="anchorContentScore">—</strong></div>
+                </div>
+              </article>
+            </div>
+            <div id="rewardFormula" class="reward-formula"></div>
+            <p id="rewardNote" class="note"></p>
+            <div class="evaluation-metrics"><span>独立 TableVerse 指标（不参与上式）</span><b>原始 TEDS <i id="evaluationTedsValue">—</i></b><b>TEDS-S <i id="evaluationTedsSValue">—</i></b></div>
+          </section>
+
+          <div class="structure-runtime-grid">
+            <section class="info-card"><div class="card-title"><h3>结构解析</h3></div><div id="structureFacts" class="facts"></div><div id="mergeList" class="merge-list"></div></section>
+            <section class="info-card"><div class="card-title"><h3>运行信息</h3></div><div id="runtimeFacts" class="facts"></div></section>
+          </div>
+
+          <details open><summary>提取的 HTML</summary><div id="htmlOutput" class="html-blocks"></div></details>
+          <details id="rawDetails"><summary>模型原始输出</summary><pre id="rawOutput"></pre></details>
+        </div>
+      </section>
+    </div>
+  </main>
+  <div id="imageModal" class="image-modal hidden" role="dialog" aria-modal="true" aria-label="原图预览">
+    <button id="modalClose" aria-label="关闭原图预览">×</button>
+    <img id="modalImage" alt="放大的表格原图">
+  </div>
+  <div id="toast" class="toast hidden"></div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

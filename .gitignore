@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+.codex/
+.agents/
+
+# Third-party source and local assets
+StrucTab/
+assets/
+
+# Generated experiment artifacts
+reproduction/checkpoints/
+reproduction/logs/
+reproduction/results/
+reproduction/data/normalized/
+reproduction/data/pools/
+reproduction/data/high_quality/
+reproduction/data/reward/
+reproduction/data/splits/
+reproduction/data/training/
+
+# Local release/build folders
+dist/
+build/
+

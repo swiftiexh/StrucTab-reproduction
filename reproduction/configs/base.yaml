@@ -1,0 +1,39 @@
+project:
+  name: structab-method-reproduction
+  seed: 42
+
+reproducibility:
+  cudnn_benchmark: false
+  cudnn_deterministic: true
+  deterministic_algorithms: false
+
+paths:
+  official_repo: StrucTab
+  assets: assets
+  model: assets/models/HunyuanOCR/v1.0
+  datasets: assets/datasets
+  checkpoints: reproduction/checkpoints
+  logs: reproduction/logs
+  results: reproduction/results
+
+protocol:
+  row_col_tag: "【行列数分析】:"
+  merge_tag: "【合并单元格分析】:"
+  final_html_tag: "【最终表格解析结果】:"
+  no_merge_token: "未发现合并单元格。"
+
+data_policy:
+  synthtabnet:
+    allowed_uses: [pretrain]
+  fintabnet:
+    allowed_uses: [pretrain]
+  pubtables:
+    allowed_uses: [sft, rl]
+  tableverse:
+    allowed_uses: [evaluation, demo]
+
+sample_id:
+  algorithm: sha256
+  digest_length: 16
+  required_inputs: [source, source_key, image_path, annotation]
+

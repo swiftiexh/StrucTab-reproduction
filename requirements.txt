@@ -1,0 +1,25 @@
+# Install a CUDA-compatible PyTorch / TorchVision build separately for your system.
+torch
+torchvision
+transformers
+accelerate
+peft
+
+beautifulsoup4
+lxml
+numpy
+pillow
+pyarrow
+PyYAML
+requests
+
+fastapi
+uvicorn
+pydantic
+playwright
+
+python-Levenshtein
+table-recognition-metric
+apted
+distance
+

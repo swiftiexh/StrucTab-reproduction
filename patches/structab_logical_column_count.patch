@@ -1,0 +1,59 @@
+diff --git a/code/training_data/get_sequencial_reasoning.py b/code/training_data/get_sequencial_reasoning.py
+index 4ee2ffd..dfcdd51 100644
+--- a/code/training_data/get_sequencial_reasoning.py
++++ b/code/training_data/get_sequencial_reasoning.py
+@@ -41,18 +41,51 @@ def strip_text_in_tags(html_str: str) -> str:
+ 
+ 
+ def parse_html_table(html_str: str) -> tuple[int, int, list[list[str]]]:
+-    """解析表格文本，返回行数、列数、纯文本二维表。"""
++    """解析表格文本，返回逻辑行数、逻辑列数和物理单元格文本。
++
++    ``parsed`` 保持原有接口，只包含 HTML 中实际出现的 ``td`` / ``th``；
++    ``col_count`` 则通过占位网格计算，使 ``rowspan`` / ``colspan`` 占据的
++    逻辑位置也被计入列数。
++    """
+     soup = BeautifulSoup(html_str, "html.parser")
+     table = soup.find("table")
+     rows = table.find_all("tr")
+ 
+     parsed = []
+-    for row in rows:
++    grid = []
++
++    for row_idx, row in enumerate(rows):
++        while len(grid) <= row_idx:
++            grid.append([])
++
+         cells = row.find_all(["td", "th"])
+         parsed.append([cell.get_text(strip=True) for cell in cells])
+ 
++        col_idx = 0
++        for cell in cells:
++            while col_idx < len(grid[row_idx]) and grid[row_idx][col_idx] is not None:
++                col_idx += 1
++
++            rowspan = int(cell.get("rowspan", 1))
++            colspan = int(cell.get("colspan", 1))
++            if rowspan < 1 or colspan < 1:
++                raise ValueError(f"rowspan/colspan 必须为正整数: rowspan={rowspan}, colspan={colspan}")
++
++            for target_row in range(row_idx, row_idx + rowspan):
++                while len(grid) <= target_row:
++                    grid.append([])
++                while len(grid[target_row]) < col_idx + colspan:
++                    grid[target_row].append(None)
++
++                for target_col in range(col_idx, col_idx + colspan):
++                    if grid[target_row][target_col] is not None:
++                        raise ValueError(f"单元格 span 重叠: row={target_row + 1}, col={target_col + 1}")
++                    grid[target_row][target_col] = (row_idx, col_idx)
++
++            col_idx += colspan
++
+     row_count = len(parsed)
+-    col_count = max((len(r) for r in parsed), default=0)
++    col_count = max((len(row_slots) for row_slots in grid), default=0)
+ 
+     return row_count, col_count, parsed
+

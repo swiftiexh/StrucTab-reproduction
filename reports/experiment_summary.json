@@ -1,0 +1,74 @@
+{
+  "project_scope": "method-level small-scale reproduction; not a final-performance reproduction",
+  "seed": 42,
+  "backbone": {
+    "name": "HunyuanOCR-1.0",
+    "parameters": 996208112,
+    "dtype": "bfloat16",
+    "attention": "sdpa"
+  },
+  "baseline": {
+    "dataset": "TableVerse-5K",
+    "fixed_subset_size": 100,
+    "completed": 100,
+    "failed": 0,
+    "exact_match_rate": 0.03,
+    "teds": 0.7429211978159116,
+    "teds_s": 0.8240104592321026,
+    "mean_generation_seconds": 34.5428,
+    "peak_generation_memory_gib": 2.5225
+  },
+  "pretraining_pool": {
+    "total": 16865,
+    "synthtabnet": 10000,
+    "fintabnet": 6865,
+    "train": 16022,
+    "validation": 843,
+    "structural_rejections": 2
+  },
+  "budgeted_subset": {
+    "train_bases": 320,
+    "validation_bases": 40,
+    "stage1_train_examples": 960,
+    "stage2_train_examples": 320,
+    "max_complete_sequence_tokens": 1534,
+    "target_policy": "exclude overlong samples; never truncate"
+  },
+  "pubtables": {
+    "source_records": 5822,
+    "converted_records": 5811,
+    "conversion_failures": 11,
+    "high_quality_pool": 4000,
+    "sft": 3200,
+    "rl": 800,
+    "sft_rl_disjoint": true
+  },
+  "reward": {
+    "formula": "0.4 * validity + 0.3 * structure + 0.3 * content",
+    "structure": "official 1D Probe",
+    "content": "Anchor-Guided Destylization followed by TEDS",
+    "audit_cases": {
+      "exact": 1.0,
+      "content_error": 0.9926829268292683,
+      "structure_error": 0.4796987087517934,
+      "merge_declaration_error": 0.6
+    }
+  },
+  "training_feasibility": {
+    "full_parameter": true,
+    "gradient_checkpointing": true,
+    "short_probe": "passed",
+    "stage1_soak_steps": "24/24",
+    "stage2_soak_steps_before_failure": 2,
+    "decision": "no-go",
+    "reason": "8GB WSL device could not guarantee stable Stage 1 + Stage 2 full-parameter training within the project time budget"
+  },
+  "formal_checkpoints": {
+    "baseline": true,
+    "stage1": false,
+    "stage2": false,
+    "sft": false,
+    "rl": false
+  }
+}
+
